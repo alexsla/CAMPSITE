@@ -65,7 +65,7 @@ sumBL <- function(x){
   max.bl <- max(distRoot(x, method = "patristic"))
   bl <- numeric()
   for (i in 0:(max.bl-1)){
-    if(i < (max.bl-1)) bl[[i+1]] <- sum(distRoot(timeSliceTree(x, i, plot = F), method = "patristic")) -
+    if(i < round(max.bl-1)) bl[[i+1]] <- sum(distRoot(timeSliceTree(x, i, plot = F), method = "patristic")) -
         sum(distRoot(timeSliceTree(x, i+1, plot = F), method = "patristic"))
     else bl[[i+1]] <- sum(distRoot(timeSliceTree(x, i, plot = F), method = "patristic")) + 1*(ceiling(max.bl)-max.bl)
   }

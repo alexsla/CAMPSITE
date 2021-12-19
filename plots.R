@@ -21,11 +21,16 @@ model.names <- list.files("output/sims", full.names = F)
 comp <- as.numeric(stringr::str_match(model.names, "comp\\s*(.*?)\\s*_")[,2])
 selec <- as.numeric(stringr::str_match(model.names, "selec\\s*(.*?)\\s*.rds")[,2])
 
-results <- list()
-for (i in 1:length(models)){
+cores = detectCores()
+cl <- makeCluster(cores[1]-1) #not to overload your computer
+registerDoParallel(cl)
+
+results <- foreach(i=1:length(models)) %dopar% {
   model <- readRDS(models[[i]])
-  results[[i]] <- lapply(model, sumModels)
+  result <- lapply(model, sumModels)
+  result
 }
+stopCluster(cl)
 
 names(results) <- stringr::str_replace(model.names, "\\.rds", "")
 
@@ -43,7 +48,7 @@ p_hist <- tip_traits_multi %>%
   ggplot(aes(x = var)) +
   #geom_density(aes(group = as.factor(iteration)), color = "light grey", alpha = 0.1) +
   geom_density(aes(color = as.factor(competition)), alpha = 0.7) +
-  geom_vline(xintercept = 10, color = "red", linetype = "dashed") +
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed") +
   # geom_vline(xintercept = -10, color = "red", linetype = "dashed") +
   # geom_vline(xintercept = 20, color = "blue") +
   # geom_vline(xintercept = -20, color = "blue") +
@@ -59,6 +64,7 @@ p_hist <- tip_traits_multi %>%
   facet_grid(rows = vars(competition),
              cols = vars(selection),
              labeller = label_both)
+p_hist
 dev.off()
 
 pdf("plots/traits_tips_mean.pdf", useDingbats = F, width = 14)
@@ -79,6 +85,7 @@ p_mean <- tip_traits_multi %>%
         axis.text.x = element_text(angle = 45, vjust = 0.5)) +
   facet_grid(cols = vars(selection),
              labeller = label_both)
+p_mean
 dev.off()
 
 pdf("plots/traits_tips_sd.pdf", useDingbats = F, width = 14)
@@ -92,7 +99,7 @@ p_sd <- tip_traits_multi %>%
   geom_boxplot() +
   geom_smooth(method = "loess", aes(group=1), colour = "dark red", show.legend = F) +
   scale_fill_manual(values = hp(n = 6, option = "Ravenclaw")) +
-  scale_x_continuous(breaks = c(0, 0.01, 0.02, 0.04, 0.07, 0.1)) +
+  scale_x_continuous(breaks = c(0, 0.01, 0.025, 0.05, 0.075, 0.1)) +
   labs(x = "Competition", y = "SD Trait at Tips") +
   #ylab("richness") +
   theme_pubr() +
@@ -100,6 +107,7 @@ p_sd <- tip_traits_multi %>%
         axis.text.x = element_text(angle = 45, vjust = 0.5)) +
   facet_grid(cols = vars(selection),
              labeller = label_both)
+p_sd
 dev.off()
 
 pdf("plots/traits_tips_kurt.pdf", useDingbats = F, width = 14)
@@ -113,7 +121,7 @@ p_kurt <- tip_traits_multi %>%
   geom_boxplot() +
   geom_smooth(method = "loess", aes(group=1), colour = "dark red", show.legend = F) +
   scale_fill_manual(values = hp(n = 6, option = "Ravenclaw")) +
-  scale_x_continuous(breaks = c(0, 0.01, 0.02, 0.04, 0.07, 0.1)) +
+  scale_x_continuous(breaks = c(0, 0.01, 0.025, 0.05, 0.075, 0.1)) +
   labs(x = "Competition", y = "Kurtosis Trait at Tips") +
   #ylab("richness") +
   theme_pubr() +
@@ -121,6 +129,7 @@ p_kurt <- tip_traits_multi %>%
         axis.text.x = element_text(angle = 45, vjust = 0.5)) +
   facet_grid(cols = vars(selection),
              labeller = label_both)
+p_kurt
 dev.off()
 
 trait_legend <- get_legend(p_mean +
@@ -197,6 +206,7 @@ p_mnnd <- MNND_multi %>%
   facet_grid(rows = vars(selection),
              scales = "free",
              labeller = label_both)
+p_mnnd
 dev.off()
 
 pdf("plots/mnnd_tips.pdf", useDingbats = F, width = 14)
@@ -206,7 +216,7 @@ p_mnnd_t <- MNND_multi %>%
   ggplot(aes(y = MNND, x = competition, fill = as.factor(competition))) +
   geom_boxplot() +
   geom_smooth(method = "loess", se=TRUE, aes(group=1), colour = "dark red") +
-  scale_x_continuous(breaks = c(0, 0.01, 0.02, 0.04, 0.07, 0.1)) +
+  scale_x_continuous(breaks = c(0, 0.01, 0.025, 0.05, 0.075, 0.1)) +
   scale_fill_manual(values = hp(n = 6, option = "Ravenclaw")) +
   labs(x = "Competition", y = "MNND") +
   #ylab("richness") +
@@ -215,6 +225,7 @@ p_mnnd_t <- MNND_multi %>%
         axis.text.x = element_text(angle = 45, vjust = 0.5)) +
   facet_grid(cols = vars(selection),
              labeller = label_both)
+p_mnnd_t
 dev.off()
 
 ###VNND
@@ -242,6 +253,7 @@ p_vnnd <- VNND_multi %>%
   facet_grid(rows = vars(selection),
              scales = "free",
              labeller = label_both)
+p_vnnd
 dev.off()
 
 pdf("plots/vnnd_tips.pdf", useDingbats = F, width = 14)
@@ -251,7 +263,7 @@ p_vnnd_t <- VNND_multi %>%
   ggplot(aes(y = VNND, x = competition, fill = as.factor(competition))) +
   geom_boxplot() +
   geom_smooth(method = "loess", se=TRUE, aes(group=1), colour = "dark red") +
-  scale_x_continuous(breaks = c(0, 0.01, 0.02, 0.04, 0.07, 0.1)) +
+  scale_x_continuous(breaks = c(0, 0.01, 0.025, 0.05, 0.075, 0.1)) +
   scale_fill_manual(values = hp(n = 6, option = "Ravenclaw")) +
   labs(x = "Competition", y = "VNND") +
   #ylab("richness") +
@@ -260,6 +272,7 @@ p_vnnd_t <- VNND_multi %>%
         axis.text.x = element_text(angle = 45, vjust = 0.5)) +
   facet_grid(cols = vars(selection),
              labeller = label_both)
+p_vnnd_t
 dev.off()
 
 p_disparity <- plot_grid(p_mnnd, p_mnnd_t, p_vnnd, p_vnnd_t,
@@ -292,7 +305,7 @@ p_rich <- richness_multi %>%
   xlab("Competition") +
   ylab("Richness") +
   geom_smooth(method = "loess", se=TRUE, aes(group=1), colour = "dark red", show.legend = F) +
-  scale_x_continuous(breaks = c(0, 0.01, 0.02, 0.04, 0.07, 0.1)) +
+  scale_x_continuous(breaks = c(0, 0.01, 0.025, 0.05, 0.075, 0.1)) +
   scale_fill_manual(values = hp(n = 6, option = "Ravenclaw"), name = "Competition") +
   facet_grid(cols = vars(selection),
              labeller = label_both) +
@@ -302,35 +315,40 @@ p_rich <- richness_multi %>%
   guides(fill = guide_legend(nrow = 1))
 
 ###LINEAGES THROUGH TIME
-lin_df_multi <- list()
-for (i in 1:length(results)){
-  lin_df_multi[[i]] <- as_tibble(do.call(rbind, unname(Map(cbind, sim = 1:length(results[[i]]), lapply(results[[i]], "[[", "lineages")))),
-                                 .name_repair = "unique") %>%
-    add_column(competition = comp[[i]],
-               selection = selec[[i]])
-  names(lin_df_multi[[i]])[1:9] <- c("sim",
-                                     "P_node",
-                                     "D_node",
-                                     "start_t",
-                                     "end_t",
-                                     "status",
-                                     "comp_t",
-                                     "sp_comp_t",
-                                     "loc")
-  
-}
-lin_df_multi <- bind_rows(lin_df_multi)
+cores = detectCores()
+cl <- makeCluster(cores[1]-1) #not to overload your computer
+registerDoParallel(cl)
 
-bl_df_multi <- list()
-for (i in 1:length(results)){
-  bl_df_multi[[i]] <- as_tibble(do.call(rbind, unname(Map(cbind, sim = 1:length(results[[i]]), lapply(lapply(results[[i]], "[[", "tree_fossil"), sumBL)))),
-                                .name_repair = "unique") %>%
+lin_df_multi <- foreach(i=1:length(results), .packages = c("tidyverse")) %dopar% {
+  lin_df_multi_i <- as_tibble(do.call(rbind, unname(Map(cbind, sim = 1:length(results[[i]]), lapply(results[[i]], "[[", "lineages")))),
+                              .name_repair = "unique") %>%
     add_column(competition = comp[[i]],
                selection = selec[[i]])
-  names(bl_df_multi[[i]])[1:3] <- c("sim",
-                                    "time_bin",
-                                    "bl")
+  names(lin_df_multi_i)[1:8] <- c("sim",
+                                  "P_node",
+                                  "D_node",
+                                  "start_t",
+                                  "end_t",
+                                  "status",
+                                  "comp_t",
+                                  "sp_comp_t")
+  lin_df_multi_i
 }
+
+bl_df_multi <- foreach(i=1:length(results), .packages = c("adephylo", "paleotree", "tidyverse")) %dopar% {
+  bl_df_multi_i <- as_tibble(do.call(rbind, unname(Map(cbind, sim = 1:length(results[[i]]), lapply(lapply(results[[i]], "[[", "tree_fossil"), sumBL)))),
+                             .name_repair = "unique") %>%
+    add_column(competition = comp[[i]],
+               selection = selec[[i]])
+  names(bl_df_multi_i)[1:3] <- c("sim",
+                                 "time_bin",
+                                 "bl")
+  bl_df_multi_i
+}
+
+stopCluster(cl)
+
+lin_df_multi <- bind_rows(lin_df_multi)
 bl_df_multi <- bind_rows(bl_df_multi)
 
 lin_df_sp <- lin_df_multi %>%
@@ -646,18 +664,20 @@ dev.off()
 
 ###TRAIT EVOLUTIONARY MODELS
 cores = detectCores()
-cl <- makeCluster(cores[1]-1) #not to overload your computer
+cl <- makeCluster(cores[1]-2) #not to overload your computer
 registerDoParallel(cl)
 
 trait_models_multi <- foreach(i=1:length(results), .packages = c("ape", "motmot", "RPANDA")) %dopar% {
   model <- results[[i]]
   model_multi <- character()
   for (k in 1:length(model)){
-    write.table(c("started"), file=paste("output/trait models/comp_",comp[[i]],"selec_",selec[[i]],"model_",k,".txt", sep=""),
-                sep="\t", col.names=F)
-    model_multi[k] <- fitTraitModels(model[[k]])
-    write.table(model_multi[k], file=paste("output/trait models/comp_",comp[[i]],"selec_",selec[[i]],"model_",k,".txt", sep=""),
-                sep="\t", col.names=F)
+    if (model[[k]]$tree_extant$Nnode < 300) {
+      write.table(c("started"), file=paste("output/trait models/comp_",comp[[i]],"selec_",selec[[i]],"model_",k,".txt", sep=""),
+                  sep="\t", col.names=F)
+      model_multi[k] <- fitTraitModels(model[[k]])
+      write.table(model_multi[k], file=paste("output/trait models/comp_",comp[[i]],"selec_",selec[[i]],"model_",k,".txt", sep=""),
+                  sep="\t", col.names=F)
+    } else next
   }
   model_multi[101] <- comp[[i]]
   model_multi[102] <- selec[[i]]
@@ -727,17 +747,19 @@ ggsave("plots/trait_signal_composite.pdf",
 
 ###DIVERSIFICATION EVOLUTIONARY MODELS
 cores = detectCores()
-cl <- makeCluster(cores[1]-1) #not to overload your computer
+cl <- makeCluster(cores[1]-2) #not to overload your computer
 
 div_models_multi <- list()
 registerDoParallel(cl)
 for (i in 1:length(results)){
   model <- results[[i]]
   model_multi <- foreach(k = 1:length(model), .packages = c("ape", "motmot", "RPANDA")) %dopar% {
+    if (model[[k]]$tree_extant$Nnode < 300) {
     best_mod <- fitDivModels(model[[k]])
     write.table(best_mod, file=paste("output/div models/comp_",comp[[i]],"selec_",selec[[i]],"model_",k,".txt", sep=""),
                 sep="\t", col.names=F)
     best_mod
+    } else next
   }
   model_multi <- as.vector(unlist(model_multi, use.names=FALSE))
   model_multi[101] <- comp[[i]]

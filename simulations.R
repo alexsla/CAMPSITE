@@ -19,17 +19,17 @@ runCAMPSITE <- function(comp, selec){
                                    0.01,
                                    0.6,
                                    0.2,
-                                   0.05,
+                                   0.2,
                                    0.01,
                                    0.4,
-                                   0.1,
-                                   0.016,
+                                   0.4,
+                                   0.02,
                                    comp,
                                    comp,
                                    selec,
                                    0.5,
                                    20),
-                          ou = list(c(10),
+                          ou = list(c(0),
                                     c(selec)),
                           bounds = c(-Inf,
                                      Inf),
@@ -48,9 +48,8 @@ runCAMPSITE <- function(comp, selec){
   rm(sim)
 }
 
-selec.vec <- c(0, 0.01, 0.02, 0.04, 0.07, 0.1)
-comp.vec <- c(0, 0.01, 0.02, 0.04, 0.07, 0.1)
-#disp.vec <- c()
+selec.vec <- c(0, 0.01, 0.025, 0.05, 0.075, 0.1)
+comp.vec <- c(0, 0.01, 0.025, 0.05, 0.075, 0.1)
 
 params <- crossing(selec.vec, comp.vec)
 
