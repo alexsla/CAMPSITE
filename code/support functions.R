@@ -29,21 +29,23 @@ sumModels <- function(model){
   }
   trait_df <- matrix(unlist(trait_df), ncol = 5000, byrow = TRUE)
   result2 <- apply(trait_df, 2, var, na.rm = TRUE)
-  result3 <- apply(trait_df, 2, MNND)
-  result4 <- model$gsp_extant$tips
-  result5 <- model$gsp_extant$tree$Nnode
-  result6 <- model$gsp_extant$tree
-  result7 <- model$gsp_fossil$tree
-  result8 <- apply(trait_df, 2, VNND)
+  result3 <- apply(trait_df, 2, mean, na.rm = TRUE)
+  result4 <- apply(trait_df, 2, MNND)
+  result5 <- apply(trait_df, 2, VNND)
+  result6 <- model$gsp_extant$tips
+  result7 <- model$gsp_extant$tree$Nnode
+  result8 <- model$gsp_extant$tree
+  result9 <- model$gsp_fossil$tree
   me <- list(
     lineages = result1,
-    traits = result2,
-    MNND = result3,
-    tip_traits = result4,
-    Nnode_extant = result5,
-    tree_extant = result6,
-    tree_fossil = result7,
-    VNND = result8
+    traits_var = result2,
+    traits_mean = result3,
+    MNND = result4,
+    VNND = result5,
+    tip_traits = result6,
+    Nnode_extant = result7,
+    tree_extant = result8,
+    tree_fossil = result9
   )
   ## Set the name for the class
   class(me) <- append(class(me),"multiResultClass")
@@ -113,18 +115,18 @@ fitDivModels <- function(model){
   f.cst <- function(t,y){y[1]}
   f.lin <- function(t,y){abs(y[1] + y[2] * t)}
   f.exp <- function(t,y){y[1] * exp(y[2] * t)}
-  models[[1]] <- fit_bd(phylo = tree, tot_time = 50, f.lamb = f.cst, f.mu = f.null, lamb_par = c(0.09), mu_par = c(), f = 1, cst.lamb = T, fix.mu = T, cond = "stem")$aicc
-  models[[2]] <- fit_bd(phylo = tree, tot_time = 50, f.lamb = f.lin, f.mu = f.null, lamb_par = c(0.09, 0.001), mu_par = c(), f = 1, fix.mu = T, cond = "stem")$aicc
-  models[[3]] <- fit_bd(phylo = tree, tot_time = 50, f.lamb = f.exp, f.mu = f.null, lamb_par = c(0.05, 0.01), mu_par = c(), f = 1, expo.lamb = T, fix.mu = T, cond = "stem")$aicc
-  models[[4]] <- fit_bd(phylo = tree, tot_time = 50, f.lamb = f.cst, f.mu = f.cst, lamb_par = c(0.09), mu_par = c(0.005), f = 1, cst.lamb = T, cst.mu = T, cond = "stem")$aicc
-  models[[5]] <- fit_bd(phylo = tree, tot_time = 50, f.lamb = f.lin, f.mu = f.cst, lamb_par = c(0.09, 0.001), mu_par = c(0.005), f = 1, cst.mu = T, cond = "stem")$aicc
-  models[[6]] <- fit_bd(phylo = tree, tot_time = 50, f.lamb = f.exp, f.mu = f.cst, lamb_par = c(0.05, 0.01), mu_par = c(0.005), f = 1, expo.lamb = T, cst.mu = T, cond = "stem")$aicc
-  models[[7]] <- fit_bd(phylo = tree, tot_time = 50, f.lamb = f.cst, f.mu = f.lin, lamb_par = c(0.09), mu_par = c(0.005, 0.0001), f = 1, cst.lamb = T, cond = "stem")$aicc
-  models[[8]] <- fit_bd(phylo = tree, tot_time = 50, f.lamb = f.lin, f.mu = f.lin, lamb_par = c(0.09, 0.001), mu_par = c(0.005, 0.0001), f = 1, cond = "stem")$aicc
-  models[[9]] <- fit_bd(phylo = tree, tot_time = 50, f.lamb = f.exp, f.mu = f.lin, lamb_par = c(0.05, 0.01), mu_par = c(0.005, 0.0001), f = 1, expo.lamb = T, cond = "stem")$aicc
-  models[[10]] <- fit_bd(phylo = tree, tot_time = 50, f.lamb = f.cst, f.mu = f.exp, lamb_par = c(0.09), mu_par = c(0.0035, 0.001), f = 1, cst.lamb = T, expo.mu = T, cond = "stem")$aicc
-  models[[11]] <- fit_bd(phylo = tree, tot_time = 50, f.lamb = f.lin, f.mu = f.exp, lamb_par = c(0.09, 0.001), mu_par = c(0.0035, 0.001), f = 1, expo.mu = T, cond = "stem")$aicc
-  models[[12]] <- fit_bd(phylo = tree, tot_time = 50, f.lamb = f.exp, f.mu = f.exp, lamb_par = c(0.05, 0.01), mu_par = c(0.0035, 0.001), f = 1, expo.lamb = T, expo.mu = T, cond = "stem")$aicc
+  models[[1]] <- fit_bd(phylo = tree, tot_time = max(nodeHeights(tree)), f.lamb = f.cst, f.mu = f.null, lamb_par = c(0.09), mu_par = c(), f = 1, cst.lamb = T, fix.mu = T, cond = "stem")$aicc
+  models[[2]] <- fit_bd(phylo = tree, tot_time = max(nodeHeights(tree)), f.lamb = f.lin, f.mu = f.null, lamb_par = c(0.09, 0.001), mu_par = c(), f = 1, fix.mu = T, cond = "stem")$aicc
+  models[[3]] <- fit_bd(phylo = tree, tot_time = max(nodeHeights(tree)), f.lamb = f.exp, f.mu = f.null, lamb_par = c(0.05, 0.01), mu_par = c(), f = 1, expo.lamb = T, fix.mu = T, cond = "stem")$aicc
+  models[[4]] <- fit_bd(phylo = tree, tot_time = max(nodeHeights(tree)), f.lamb = f.cst, f.mu = f.cst, lamb_par = c(0.09), mu_par = c(0.005), f = 1, cst.lamb = T, cst.mu = T, cond = "stem")$aicc
+  models[[5]] <- fit_bd(phylo = tree, tot_time = max(nodeHeights(tree)), f.lamb = f.lin, f.mu = f.cst, lamb_par = c(0.09, 0.001), mu_par = c(0.005), f = 1, cst.mu = T, cond = "stem")$aicc
+  models[[6]] <- fit_bd(phylo = tree, tot_time = max(nodeHeights(tree)), f.lamb = f.exp, f.mu = f.cst, lamb_par = c(0.05, 0.01), mu_par = c(0.005), f = 1, expo.lamb = T, cst.mu = T, cond = "stem")$aicc
+  models[[7]] <- fit_bd(phylo = tree, tot_time = max(nodeHeights(tree)), f.lamb = f.cst, f.mu = f.lin, lamb_par = c(0.09), mu_par = c(0.005, 0.0001), f = 1, cst.lamb = T, cond = "stem")$aicc
+  models[[8]] <- fit_bd(phylo = tree, tot_time = max(nodeHeights(tree)), f.lamb = f.lin, f.mu = f.lin, lamb_par = c(0.09, 0.001), mu_par = c(0.005, 0.0001), f = 1, cond = "stem")$aicc
+  models[[9]] <- fit_bd(phylo = tree, tot_time = max(nodeHeights(tree)), f.lamb = f.exp, f.mu = f.lin, lamb_par = c(0.05, 0.01), mu_par = c(0.005, 0.0001), f = 1, expo.lamb = T, cond = "stem")$aicc
+  models[[10]] <- fit_bd(phylo = tree, tot_time = max(nodeHeights(tree)), f.lamb = f.cst, f.mu = f.exp, lamb_par = c(0.09), mu_par = c(0.0035, 0.001), f = 1, cst.lamb = T, expo.mu = T, cond = "stem")$aicc
+  models[[11]] <- fit_bd(phylo = tree, tot_time = max(nodeHeights(tree)), f.lamb = f.lin, f.mu = f.exp, lamb_par = c(0.09, 0.001), mu_par = c(0.0035, 0.001), f = 1, expo.mu = T, cond = "stem")$aicc
+  models[[12]] <- fit_bd(phylo = tree, tot_time = max(nodeHeights(tree)), f.lamb = f.exp, f.mu = f.exp, lamb_par = c(0.05, 0.01), mu_par = c(0.0035, 0.001), f = 1, expo.lamb = T, expo.mu = T, cond = "stem")$aicc
   names(models) <- c("Bcst", "Blin", "Bexp", "BcstDcst", "BlinDcst", "BexpDcst", "BcstDlin", "BlinDlin", "BexpDlin", "BcstDexp", "BlinDexp", "BexpDexp")
   return(names(sort(models))[[1]])
 }
