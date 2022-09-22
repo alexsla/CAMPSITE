@@ -1,4 +1,4 @@
-sim_CAMPSITE <- function (pars, ou = list(NULL,NULL), root.value = 0, age.max = 50, age.ext = NULL, step.size = 0.01, bounds = c(-Inf, Inf), plot = TRUE, ylims = NULL, full.sim = FALSE) 
+sim_CAMPSITE <- function (pars, ou = list(NULL,NULL,NULL), root.value = 0, age.max = 50, age.ext = NULL, step.size = 0.01, bounds = c(-Inf, Inf), plot = TRUE, ylims = NULL, full.sim = FALSE) 
 {
   lambda1 = pars[1] #speciation initiation rate
   tau0 = pars[2] #basal speciation completion rate
@@ -11,9 +11,8 @@ sim_CAMPSITE <- function (pars, ou = list(NULL,NULL), root.value = 0, age.max = 
   muibg = pars[9] #background incipient species extinction rate
   alpha1 = pars[10] #competition effect on extinction (competition strength)
   alpha2 = pars[11] #competition effect on trait evolution (competition strength)
-  alpha3 = pars[12] #selection effect on extinction (selection strength)
-  sig2 = pars[13] #variance (rate) of Brownian motion
-  m = pars[14] #relative contribution of character displacement (competition) with respect to stochastic (brownian) evolution
+  sig2 = pars[12] #variance (rate) of Brownian motion
+  m = pars[13] #relative contribution of character displacement (competition) with respect to stochastic (brownian) evolution
   s = sqrt(sig2 * step.size) #variance of BM per step size
   m = m * step.size #relative contribution of competition with respect to BM per step size
   if (length(bounds) != 2) {
@@ -24,20 +23,31 @@ sim_CAMPSITE <- function (pars, ou = list(NULL,NULL), root.value = 0, age.max = 
   }
   if (is.null(ou[[1]])){
     opt = NULL
+    alpha3 = 0
     alpha4 = 0
     print("Warning: no OU parameters supplied; continuing simulation")
   }
   if (!is.null(ou[[1]])){
-    if (is.null(ou[[2]])){
+    if (is.null(ou[[2]]) || is.null(ou[[3]])){
       stop("Alpha values for OU process should be provided")
-    } else if (length(ou[[2]]) > length(ou[[1]])){
+    } else if (length(ou[[2]] > length(ou[[1]]) || ou[[3]]) > length(ou[[1]])){
       stop("Number of optima and alpha values should match")
     } else if (length(ou[[2]]) == 1) {
       opt = ou[[1]]
-      alpha4 = rep(ou[[2]], length(ou[[1]]))
+      alpha3 = rep(ou[[2]], length(ou[[1]]))
+      if (length(ou[[3]]) == 1) {
+        alpha4 = rep(ou[[3]], length(ou[[1]]))
+      } else if (length(ou[[3]]) == length(ou[[1]])) {
+        alpha4 = ou[[3]]
+      }
     } else if (length(ou[[2]]) == length(ou[[1]])){
       opt = ou[[1]]
-      alpha4 = ou[[2]]
+      alpha3 = ou[[2]]
+      if (length(ou[[3]]) == 1) {
+        alpha4 = rep(ou[[3]], length(ou[[1]]))
+      } else if (length(ou[[3]]) == length(ou[[1]])) {
+        alpha4 = ou[[3]]
+      }
     }
   }
   process_dead = F #parameter signifying whether simulation is still running
@@ -105,7 +115,7 @@ sim_CAMPSITE <- function (pars, ou = list(NULL,NULL), root.value = 0, age.max = 
                                traits[[i]][4]) #calculate absolute value of difference from trait value of parental lineage
         lambda2 = tau0 * exp(beta * (diff_trait_isp)^2) #calculate rate of completion of speciation for species - dependent on distance from parent
         mui = alpha1 * mui0 * sum(exp(-alpha1 * (diff_me[[i]])^2)) + #calculate rate of competitive-dependent extinction for species - depends on distance from lineages
-          alpha3 * mui1 * (1 - sum(exp(-alpha3 * diff_trait_opt^2))) + #calculate rate of selective-dependent extinction for species - depends on distance from optima
+          sum(alpha3 * mui1 * (1 - exp(-alpha3 * diff_trait_opt^2))) + #calculate rate of selective-dependent extinction for species - depends on distance from optima
           muibg #add background extinction rate
         probs_i = c(lambda2/(mui + lambda2), #probability of speciation completion
                     mui/(mui + lambda2)) #probability of extinction
@@ -124,7 +134,7 @@ sim_CAMPSITE <- function (pars, ou = list(NULL,NULL), root.value = 0, age.max = 
       }
       if (lineages[i, 5] == 1) { #if lineage is good
         mu = alpha1 * mu0 * sum(exp(-alpha1 * (diff_me[[i]])^2)) + #calculate rate of competitive-dependent extinction for species - depends on distance from lineages
-          alpha3 * mu1 * (1 - sum(exp(-alpha3 * diff_trait_opt^2))) + #calculate rate of selective-dependent extinction for species - depends on distance from optima
+          sum(alpha3 * mu1 * (1 - exp(-alpha3 * diff_trait_opt^2))) + #calculate rate of selective-dependent extinction for species - depends on distance from optima
           mubg #add background extinction rate
         if (mu0 != 0 & mu == 0) { #captures the case when there's only one lineage alive & extinction is activated
           mu = 0.02 * mu0 #when alone, a lineage has basal extinction rate (equal to having infinite distance with neighbors & no selection)

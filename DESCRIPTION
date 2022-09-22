@@ -1,0 +1,36 @@
+Package: CAMPSITE
+Title: Competition And Multiple-Peak Selection Integrated Trait Evolution
+Version: 0.0.0.9000
+Authors@R: 
+    c(person("Alex", "Slavenko", , "alex.slavenko1@gmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-3265-7715")),
+      person("Anna", "Krystalli", , "annakrystalli@googlemail.com", role = "aut",
+           comment = c(ORCID = "0000-0002-2378-4915")))
+Description: Simulates evolution under the CAMPSITE model, with user-specified parameters for strengths of inter-specific competition and selection. Also includes functions to run a variety of analyses of diversification and trait evolution dynamics on simulated datasets.
+Imports: 
+    adephylo,
+    ape,
+    apTreeshape,
+    checkmate,
+    cowplot,
+    doParallel,
+    e1071,
+    foreach,
+    geiger,
+    ggpubr,
+    harrypotter,
+    Hmisc,
+    motmot,
+    paleotree,
+    phytools,
+    rlang,
+    RPANDA,
+    stringr,
+    tidyverse,
+    usethis
+Remotes: 
+    kassambara/ggpubr
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.2
