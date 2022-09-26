@@ -465,7 +465,8 @@ signal_multi %>%
             bxp.errorbar = T) +
   facet_grid(cols = vars(selection),
              rows = vars(signal),
-             scales = "free_y") +
+             scales = "free_y",
+             labeller = labeller(.cols = label_both)) +
   scale_fill_manual(values = hp(n = 3, option = "Ravenclaw"))
 dev.off()
 
