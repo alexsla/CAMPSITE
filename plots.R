@@ -912,3 +912,132 @@ p_div_m <- div_models_multi %>%
         axis.title = element_blank())
 p_div_m
 dev.off()
+
+
+## ABC
+
+traits_models <- tip_traits_multi %>%
+  gather("iteration", "var", -c(competition, selection)) %>%
+  group_by(selection, competition) %>%
+  summarise(mean = mean(var, na.rm = T),
+            sd = sd(var, na.rm = T),
+            kurt = e1071::kurtosis(var, na.rm = T)) %>%
+  left_join(MNND_multi %>%
+              filter(time == 5000) %>%
+              gather("iteration", "mnnd", -c(competition, selection, time)) %>%
+              mutate(iteration = str_remove(iteration, "V"))) %>%
+  left_join(VNND_multi %>%
+              filter(time == 5000) %>%
+              gather("iteration", "vnnd", -c(competition, selection, time)) %>%
+              mutate(iteration = str_remove(iteration, "V"))) %>%
+  left_join(signal_multi %>%
+              gather("iteration", "var", -c(competition, selection, signal)) %>%
+              spread(signal, var)) %>%
+  left_join(richness_multi %>%
+              rename(richness = value)) %>%
+  mutate(model = case_when(competition == 0 & selection == 0 ~ "bm",
+                           competition > 0 & selection == 0 ~ "comp",
+                           competition == 0 & selection > 0 ~ "selec",
+                           T ~ "comp_selec")) %>%
+  ungroup() %>%
+  as.data.frame()
+
+models <- traits_models$model
+traits <- traits_models[,c(4:5, 8:13)]
+# 
+# boxplot(traits[,"sd"]~models, main="SD of traits")
+# boxplot(traits[,"kurt"]~models, main="Kurtosis of traits")
+# boxplot(traits[,"mnnd"]~models, main="MNND of traits")
+# boxplot(traits[,"vnnd"]~models, main="VNND of traits")
+# boxplot(traits[,"gamma"]~models, main="Gamma")
+# boxplot(traits[,"K"]~models, main="Blomberg's K")
+# boxplot(traits[,"lambda"]~models, main="Pagel's lambda")
+# boxplot(traits[,"richness"]~models, main="Species richness")
+
+traits_models %>%
+  dplyr::select(-c(iteration, time)) %>%
+  pivot_longer(cols = 4:11) %>%
+  mutate(name = case_when(name == "sd" ~ "SD of traits",
+                          name == "kurt" ~ "Kurtosis of traits",
+                          name == "mnnd" ~ "MNND of traits",
+                          name == "vnnd" ~ "VNND of traits",
+                          name == "gamma" ~ "Gamma",
+                          name == "K" ~ "Blomberg's K",
+                          name == "lambda" ~ "Pagel's lambda",
+                          name == "richness" ~ "Species richness"),
+         model = case_when(model == "bm" ~ "Brownian Motion",
+                           model == "comp" ~ "Competition",
+                           model == "selec" ~ "Selection",
+                           model == "comp_selec" ~ "Competition + Selection")) %>%
+  ggplot(aes(x = model, y = value, fill = model)) +
+  geom_boxplot() +
+  theme_bw() +
+  facet_wrap(~name, scale = "free") +
+  scale_fill_manual(values = hp(n = 4, option = "Ravenclaw")) +
+  labs(x = "Model", y = "") +
+  theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1))
+
+set.seed(42)
+cv.modsel <- cv4postpr(models, traits, nval=100, tol=.01, method="mnlogistic")
+s <- summary(cv.modsel)
+
+# plot(cv.modsel, names.arg=c("Brownian Motion", "Competition", "Competition + Selection", "Selection"))
+p_abc <- cv.modsel$model.probs %>%
+  as.data.frame() %>%
+  as_tibble() %>%
+  mutate(true_model = rep(c("Brownian Motion", "Competition", "Competition + Selection", "Selection"), each = 100)) %>%
+  rename(`Brownian Motion` = `tol0.01.bm`,
+         `Competition` = `tol0.01.comp`,
+         `Competition + Selection` = `tol0.01.comp_selec`,
+         `Selection` = `tol0.01.selec`) %>%
+  pivot_longer(cols = 1:4) %>%
+  ggplot(aes(x = true_model, y = value, fill = name)) +
+  geom_bar(stat = "identity", position = "stack") +
+  theme_bw() +
+  scale_fill_manual(values = hp(n = 4, option = "Ravenclaw"), name = "") +
+  labs(x = "", y = "") +
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave("plots/Figure 5.pdf",
+       p_abc,
+       width = 8,
+       height = 8,
+       units = "cm",
+       scale = 2)
+
+# PCA
+res.prcomp = prcomp(traits, scale = T, center = T)
+
+dc <- list()
+for (i in unique(models)){
+  kde <- kde2d(res.prcomp$x[which(models == i),1], res.prcomp$x[which(models == i),2])
+  dx <- diff(kde$x[1:2])  # lifted from emdbook::HPDregionplot()
+  dy <- diff(kde$y[1:2])
+  sz <- sort(kde$z)
+  c1 <- cumsum(sz) * dx * dy
+  dimnames(kde$z) <- list(kde$x, kde$y)
+  dc[[i]] <- reshape2::melt(kde$z)
+  dc[[i]]$prob <- approx(sz,1-c1,dc[[i]]$value)$y
+  dc[[i]]$model <- i
+}
+
+prob <- 0.9
+
+p_pca <- ggplot(bind_rows(dc),aes(x=Var1,y=Var2))+
+  geom_point(aes(x = PC1, y = PC2, color = model), alpha = .01, data = res.prcomp$x %>%
+               as_tibble() %>%
+               mutate(model = models)) +
+  geom_contour(aes(z=prob, color=model),breaks=prob) +
+  theme_bw() +
+  scale_color_manual(values = hp(n = 4, option = "Ravenclaw"),
+                     name = "Model",
+                     labels = c("Brownian Motion", "Competition", "Competition + Selection", "Selection")) +
+  ggtitle("90% envelope of the 2 Principal Components obtained with each model")
+
+ggsave("plots/Figure S12.pdf",
+       p_pca,
+       width = 8,
+       height = 5,
+       units = "cm",
+       scale = 2)
+

@@ -20,14 +20,15 @@ VNND <- function(x){
 
 sumModels <- function(model){
   result1 <- model$all$lin_mat
+  mod.length <- round(max(model$all$lin_mat[,4])*100, 0)
   trait_df <- list()
   for (k in 1:length(model$all$trait_mat)){
     trait_df[[k]] <- model$all$trait_mat[[k]]
     trait_df[[k]] <- trait_df[[k]][5:length(trait_df[[k]])]
-    length(trait_df[[k]]) <- 5000
-    names(trait_df[[k]]) <- c(1:5000)
+    length(trait_df[[k]]) <- mod.length
+    names(trait_df[[k]]) <- c(1:mod.length)
   }
-  trait_df <- matrix(unlist(trait_df), ncol = 5000, byrow = TRUE)
+  trait_df <- matrix(unlist(trait_df), ncol = mod.length, byrow = TRUE)
   result2 <- apply(trait_df, 2, var, na.rm = TRUE)
   result3 <- apply(trait_df, 2, mean, na.rm = TRUE)
   result4 <- apply(trait_df, 2, MNND)
